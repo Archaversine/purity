@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module Main where
@@ -35,7 +36,13 @@ purityImport :: [ModuleImport] -> Purity ()
 purityImport is = do 
     curr <- get 
     let new = curr <> PurityState is
-    put new >> setImportsF (intImports new)
+
+    catch @_ @InterpreterError (setImportsF (intImports new) >> put new) $ \_ -> liftIO $ do 
+        putStrLn "Import directive failed."
+        putStrLn "Could not import the following:\n"
+        putStrLn "-------------------------"
+        mapM_ print is
+        putStrLn "-------------------------"
 
 purityImportStr :: [String] -> Purity ()
 purityImportStr = purityImport . map (\n -> ModuleImport n NotQualified NoImportList)

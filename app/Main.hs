@@ -1,12 +1,16 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Main where
 
+import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.State
 
 import Data.List
 
+import System.Exit
 import System.IO
 
 import qualified Language.Haskell.Interpreter as Hint
@@ -33,14 +37,20 @@ purityImport xs = do
     put new >> Hint.setImports ys
 
 purityLoop :: Interpreter ()
-purityLoop = liftIO (putStr "Purity > " >> getLine) >>= purityStmt >> purityLoop
+purityLoop = do 
+    input <- liftIO (putStr "Purity > " >> getLine) 
+    catch (purityStmt input) (liftIO . print @Hint.InterpreterError)
+    purityLoop
 
 purityStmt :: String -> Interpreter ()
-purityStmt ('#' : xs) 
-    | "purge"  `isPrefixOf` xs = Hint.reset
-    | "import" `isPrefixOf` xs = purityImport (tail $ words xs)
-    | otherwise = liftIO $ putStrLn $ "Unknown directive: " ++ xs
-purityStmt xs = Hint.runStmt xs
+purityStmt = \case 
+    ":q"     -> liftIO exitSuccess -- For the vim users
+    "#quit"  -> liftIO exitSuccess 
+    "#purge" -> Hint.reset 
+    ('#' : xs) 
+        | "import" `isPrefixOf` xs -> purityImport (tail $ words xs) 
+        | otherwise -> liftIO $ putStrLn $ "Unknown directive: " ++ xs
+    xs -> Hint.runStmt xs
 
 purity :: Interpreter ()
 purity = purityImport ["Prelude"] >> purityLoop

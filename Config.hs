@@ -17,4 +17,4 @@ defaultImports = [ "Prelude"
                  ]
 
 errorColorPrefix :: Maybe String 
-errorColorPrefix = Just "\ESC[38;5;196m"
+errorColorPrefix = Just "\ESC[38;5;161m"

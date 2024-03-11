@@ -99,15 +99,24 @@ parseImportQList (x:xs) = parsed : parseImportQList xs
             (a, ':':b) -> Right $ ModuleImport a (QualifiedAs (Just b)) NoImportList
             _          -> Left x
 
+printType :: String -> Purity ()
+printType xs = do 
+    info <- typeOf xs
+    liftIO $ putStrLn $ xs ++ " :: " ++ info
+
 purityStmt :: String -> Purity ()
 purityStmt = \case 
     ":q"     -> liftIO exitSuccess -- For the vim users
     "#quit"  -> liftIO exitSuccess 
     "#purge" -> reset 
     ('#' : xs) 
-        | "importQ" `isPrefixOf` xs -> purityImportQ (parseImportQList $ tail $ words xs)
-        | "import"  `isPrefixOf` xs -> purityImportStr $ tail $ words xs
-        | otherwise -> prettyPrintErrorStr $ "Unknown directive: " ++ xs
+        | "importQ " `isPrefixOf` xs -> purityImportQ (parseImportQList $ tail $ words xs)
+        | "import "  `isPrefixOf` xs -> purityImportStr $ tail $ words xs
+        | "type "    `isPrefixOf` xs -> printType $ concat $ tail $ words xs
+        | otherwise -> prettyPrintErrorStr $ "Unknown directive: #" ++ xs
+    (':' : x : xs) 
+        | x == 't' -> printType $ unwords $ words xs
+        | otherwise -> prettyPrintErrorStr $ "Unknown directive: :" ++ [x]
     xs -> runStmt xs
 
 purity :: Purity ()

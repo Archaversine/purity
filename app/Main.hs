@@ -1,73 +1,101 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Main where
 
+import Control.Monad
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.State
 
+import Data.Either
 import Data.List
 
 import System.Exit
 import System.IO
 
-import qualified Language.Haskell.Interpreter as Hint
+import Language.Haskell.Interpreter hiding (get)
 
-newtype InterpreterState = IntState { intImports :: [String] }
+newtype PurityState = PurityState { intImports :: [ModuleImport] }
 
-instance Semigroup InterpreterState where 
-    IntState a <> IntState b = IntState (a <> b) 
+instance Semigroup PurityState where 
+    PurityState a <> PurityState b = PurityState (a <> b)
 
-instance Monoid InterpreterState where 
-    mempty = IntState []
+instance Monoid PurityState where 
+    mempty = PurityState []
 
-type Interpreter = StateT InterpreterState (Hint.InterpreterT IO)
+type Purity = StateT PurityState (InterpreterT IO)
 
-instance Hint.MonadInterpreter Interpreter where
-    fromSession          = lift . Hint.fromSession
-    modifySessionRef t f = lift $ Hint.modifySessionRef t f
-    runGhc x             = lift $ Hint.runGhc x
+instance MonadInterpreter Purity where
+    fromSession          = lift . fromSession
+    modifySessionRef t f = lift $ modifySessionRef t f
+    runGhc x             = lift $ runGhc x
 
-purityImport :: [String] -> Interpreter ()
-purityImport xs = do 
+purityImport :: [ModuleImport] -> Purity ()
+purityImport is = do 
     curr <- get 
-    let new@(IntState ys) = curr <> IntState xs
-    put new >> Hint.setImports ys
+    let new = curr <> PurityState is
+    put new >> setImportsF (intImports new)
 
-purityLoop :: Interpreter ()
+purityImportStr :: [String] -> Purity ()
+purityImportStr = purityImport . map (\n -> ModuleImport n NotQualified NoImportList)
+
+purityImportQ :: [Either String ModuleImport] -> Purity () 
+purityImportQ xs = do 
+    let (errs, mods) = partitionEithers xs
+
+    unless (null errs) $ liftIO $ do 
+        putStrLn "Could not import the following:\n"
+        mapM_ putStrLn errs
+
+    purityImport mods
+
+purityLoop :: Purity ()
 purityLoop = do 
     input <- liftIO (putStr "Purity > " >> getLine) 
     catch (purityStmt input) (liftIO . prettyPrintError)
     purityLoop
 
-prettyPrintError :: Hint.InterpreterError -> IO ()
+prettyPrintError :: InterpreterError -> IO ()
 prettyPrintError = \case
-    (Hint.UnknownError e) -> putStrLn $ "Magical error: " ++ e
-    (Hint.NotAllowed   e) -> putStrLn $ "Not allowed: " ++ e
-    (Hint.GhcException e) -> putStrLn $ "GHC threw an exception: " ++ e
-    (Hint.WontCompile ms) -> putStrLn $ "Compilation Error\n\n" ++ intercalate "\n" (map Hint.errMsg ms)
+    (UnknownError e) -> putStrLn $ "Magical error: " ++ e
+    (NotAllowed   e) -> putStrLn $ "Not allowed: " ++ e
+    (GhcException e) -> putStrLn $ "GHC threw an exception: " ++ e
+    (WontCompile ms) -> putStrLn $ "Compilation Error\n\n" ++ intercalate "\n" (map errMsg ms)
 
-purityStmt :: String -> Interpreter ()
+parseImportList :: [String] -> [ModuleImport]
+parseImportList = map (\n -> ModuleImport n NotQualified NoImportList)
+
+parseImportQList :: [String] -> [Either String ModuleImport]
+parseImportQList [] = []
+parseImportQList (x:xs) = parsed : parseImportQList xs
+    where parsed = case break (== ':') x of 
+            (a, ':':b) -> Right $ ModuleImport a (QualifiedAs (Just b)) NoImportList
+            _          -> Left x
+
+purityStmt :: String -> Purity ()
 purityStmt = \case 
     ":q"     -> liftIO exitSuccess -- For the vim users
     "#quit"  -> liftIO exitSuccess 
-    "#purge" -> Hint.reset 
+    "#purge" -> reset 
     ('#' : xs) 
-        | "import" `isPrefixOf` xs -> purityImport (tail $ words xs) 
+        | "importQ" `isPrefixOf` xs -> purityImportQ (parseImportQList $ tail $ words xs)
+        | "import"  `isPrefixOf` xs -> purityImportStr $ tail $ words xs
         | otherwise -> liftIO $ putStrLn $ "Unknown directive: " ++ xs
-    xs -> Hint.runStmt xs
+    xs -> runStmt xs
 
-purity :: Interpreter ()
-purity = purityImport ["Prelude"] >> purityLoop
+purity :: Purity ()
+purity = do 
+    loadModules ["Config.hs"]
+    purityImport [ModuleImport "Config" (QualifiedAs (Just "Config")) NoImportList]
+    interpret "Config.defaultImports" (as :: [String]) >>= purityImportStr >> purityLoop
 
 main :: IO ()
 main = do 
     hSetBuffering stdout NoBuffering
     putStrLn "PURITY SHELL [ALPHA]\n"
 
-    result <- Hint.runInterpreter (evalStateT purity mempty)
+    result <- runInterpreter (evalStateT purity $ PurityState [])
 
     case result of 
         Left err -> putStrLn $ "Error: " ++ show err

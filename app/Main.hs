@@ -1,8 +1,11 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module Main where
+
+import Control.Lens
 
 import Control.Monad
 import Control.Monad.Catch
@@ -11,19 +14,29 @@ import Control.Monad.State
 
 import Data.Either
 import Data.List
+import Data.Maybe
 
 import System.Exit
 import System.IO
 
 import Language.Haskell.Interpreter hiding (get)
 
-newtype PurityState = PurityState { intImports :: [ModuleImport] }
+data PurityState = PurityState { _intImports  :: [ModuleImport] 
+                               , _intSettings :: TermSettings 
+                               }
 
-instance Semigroup PurityState where 
-    PurityState a <> PurityState b = PurityState (a <> b)
+data TermSettings = TermSettings { _termPrompt :: String  
+                                 , _termErrClr :: String 
+                                 }
 
-instance Monoid PurityState where 
-    mempty = PurityState []
+makeLenses ''PurityState
+makeLenses ''TermSettings
+
+defaultTermSettings :: TermSettings 
+defaultTermSettings = TermSettings "Purity > " ""
+
+defaultState :: PurityState 
+defaultState = PurityState [] defaultTermSettings
 
 type Purity = StateT PurityState (InterpreterT IO)
 
@@ -34,15 +47,15 @@ instance MonadInterpreter Purity where
 
 purityImport :: [ModuleImport] -> Purity ()
 purityImport is = do 
-    curr <- get 
-    let new = curr <> PurityState is
+    curr <- gets (view intImports)
+    let new = curr <> is
 
-    catch @_ @InterpreterError (setImportsF (intImports new) >> put new) $ \_ -> liftIO $ do 
-        putStrLn "Import directive failed."
-        putStrLn "Could not import the following:\n"
-        putStrLn "-------------------------"
-        mapM_ print is
-        putStrLn "-------------------------"
+    catch @_ @InterpreterError (setImportsF new >> (intImports .= new)) $ \_ -> do 
+        prettyPrintErrorStr "Import directive failed."
+        prettyPrintErrorStr "Could not import the following:\n"
+        prettyPrintErrorStr "-------------------------"
+        mapM_ (prettyPrintErrorStr . show) is
+        prettyPrintErrorStr "-------------------------"
 
 purityImportStr :: [String] -> Purity ()
 purityImportStr = purityImport . map (\n -> ModuleImport n NotQualified NoImportList)
@@ -51,24 +64,30 @@ purityImportQ :: [Either String ModuleImport] -> Purity ()
 purityImportQ xs = do 
     let (errs, mods) = partitionEithers xs
 
-    unless (null errs) $ liftIO $ do 
-        putStrLn "Could not import the following:\n"
-        mapM_ putStrLn errs
+    unless (null errs) $ do 
+        prettyPrintErrorStr $ "Could not import the following:\n" ++ intercalate "\n" errs
 
     purityImport mods
 
 purityLoop :: Purity ()
 purityLoop = do 
-    input <- liftIO (putStr "Purity > " >> getLine) 
-    catch (purityStmt input) (liftIO . prettyPrintError)
+    prompt <- gets $ view (intSettings.termPrompt)
+
+    input <- liftIO (putStr prompt >> getLine) 
+    catch (purityStmt input) prettyPrintError
     purityLoop
 
-prettyPrintError :: InterpreterError -> IO ()
-prettyPrintError = \case
-    (UnknownError e) -> putStrLn $ "Magical error: " ++ e
-    (NotAllowed   e) -> putStrLn $ "Not allowed: " ++ e
-    (GhcException e) -> putStrLn $ "GHC threw an exception: " ++ e
-    (WontCompile ms) -> putStrLn $ "Compilation Error\n\n" ++ intercalate "\n" (map errMsg ms)
+prettyPrintError :: InterpreterError -> Purity ()
+prettyPrintError err = prettyPrintErrorStr $ case err of
+    UnknownError e -> "Magical error: " ++ e
+    NotAllowed   e -> "Not allowed: " ++ e
+    GhcException e -> "GHC threw an exception: " ++ e
+    WontCompile ms -> "Compilation Error\n\n" ++ intercalate "\n" (map errMsg ms)
+
+prettyPrintErrorStr :: String -> Purity () 
+prettyPrintErrorStr err = do 
+    color <- gets $ view (intSettings.termErrClr) 
+    liftIO $ putStr color >> putStrLn err >> putStr "\ESC[0m" -- Reset color
 
 parseImportList :: [String] -> [ModuleImport]
 parseImportList = map (\n -> ModuleImport n NotQualified NoImportList)
@@ -88,21 +107,30 @@ purityStmt = \case
     ('#' : xs) 
         | "importQ" `isPrefixOf` xs -> purityImportQ (parseImportQList $ tail $ words xs)
         | "import"  `isPrefixOf` xs -> purityImportStr $ tail $ words xs
-        | otherwise -> liftIO $ putStrLn $ "Unknown directive: " ++ xs
+        | otherwise -> prettyPrintErrorStr $ "Unknown directive: " ++ xs
     xs -> runStmt xs
 
 purity :: Purity ()
 purity = do 
     loadModules ["Config.hs"]
     purityImport [ModuleImport "Config" (QualifiedAs (Just "Config")) NoImportList]
-    interpret "Config.defaultImports" (as :: [String]) >>= purityImportStr >> purityLoop
+
+    prompt <- interpret "Config.shellPrompt" (as :: String)
+    errClr <- fromMaybe "" <$> interpret "Config.errorColorPrefix" (as :: Maybe String)
+
+    let settings = defaultTermSettings & termPrompt .~ prompt
+                                       & termErrClr .~ errClr
+
+    intSettings .= settings
+
+    interpret "Config.splashText"     (as :: Maybe String) >>= liftIO . putStrLn . fromMaybe ""
+    interpret "Config.defaultImports" (as :: [String]    ) >>= purityImportStr >> purityLoop
 
 main :: IO ()
 main = do 
     hSetBuffering stdout NoBuffering
-    putStrLn "PURITY SHELL [ALPHA]\n"
 
-    result <- runInterpreter (evalStateT purity $ PurityState [])
+    result <- runInterpreter (evalStateT purity defaultState)
 
     case result of 
         Left err -> putStrLn $ "Error: " ++ show err

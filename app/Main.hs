@@ -113,7 +113,7 @@ purityStmt :: String -> Purity ()
 purityStmt = \case 
     ":q"     -> liftIO exitSuccess -- For the vim users
     "#quit"  -> liftIO exitSuccess 
-    "#purge" -> reset 
+    "#purge" -> reset >> (intImports .= [])
     ('#' : xs) 
         | "importQ " `isPrefixOf` xs -> purityImportQ (parseImportQList $ tail $ words xs)
         | "import "  `isPrefixOf` xs -> purityImportStr $ tail $ words xs

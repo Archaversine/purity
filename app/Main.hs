@@ -39,8 +39,15 @@ purityImport xs = do
 purityLoop :: Interpreter ()
 purityLoop = do 
     input <- liftIO (putStr "Purity > " >> getLine) 
-    catch (purityStmt input) (liftIO . print @Hint.InterpreterError)
+    catch (purityStmt input) (liftIO . prettyPrintError)
     purityLoop
+
+prettyPrintError :: Hint.InterpreterError -> IO ()
+prettyPrintError = \case
+    (Hint.UnknownError e) -> putStrLn $ "Magical error: " ++ e
+    (Hint.NotAllowed   e) -> putStrLn $ "Not allowed: " ++ e
+    (Hint.GhcException e) -> putStrLn $ "GHC threw an exception: " ++ e
+    (Hint.WontCompile ms) -> putStrLn $ "Compilation Error\n\n" ++ intercalate "\n" (map Hint.errMsg ms)
 
 purityStmt :: String -> Interpreter ()
 purityStmt = \case 

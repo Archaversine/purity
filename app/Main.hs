@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -80,7 +81,9 @@ purityLoop :: Purity ()
 purityLoop = promptUser >>= purityRunLine >> purityLoop
 
 purityRunLine :: String -> Purity () 
-purityRunLine input = catch (purityStmt input) prettyPrintError
+purityRunLine input = catch (catch (purityStmt input) prettyPrintError) $ \case
+    (fromException -> Just ExitSuccess) -> liftIO exitSuccess -- rethrow exit success to actually exit the program
+    e -> prettyPrintErrorStr $ "Interpreter Exception: " ++ show @SomeException e
 
 prettyPrintError :: InterpreterError -> Purity ()
 prettyPrintError err = prettyPrintErrorStr $ case err of

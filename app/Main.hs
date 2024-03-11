@@ -112,6 +112,11 @@ printType xs = do
     info <- typeOf xs
     liftIO $ putStrLn $ xs ++ " :: " ++ info
 
+printKind :: String -> Purity () 
+printKind xs = do 
+    info <- kindOf xs
+    liftIO $ putStrLn $ xs ++ " :: " ++ info
+
 puritySourceFile :: FilePath -> Purity () 
 puritySourceFile path = liftIO (lines <$> readFile path) >>= puritySourceLine ""
 
@@ -140,10 +145,12 @@ purityStmt = \case
         | "importQ " `isPrefixOf` xs -> purityImportQ (parseImportQList $ tail $ words xs)
         | "import "  `isPrefixOf` xs -> purityImportStr $ tail $ words xs
         | "type "    `isPrefixOf` xs -> printType $ concat $ tail $ words xs
+        | "kind "    `isPrefixOf` xs -> printKind $ concat $ tail $ words xs
         | "source "  `isPrefixOf` xs -> mapM_ puritySourceFile $ tail $ words xs
         | otherwise -> prettyPrintErrorStr $ "Unknown directive: #" ++ xs
     (':' : x : xs) 
-        | x == 't' -> printType $ unwords $ words xs
+        | x == 't' -> printType xs
+        | x == 'k' -> printKind xs
         | otherwise -> prettyPrintErrorStr $ "Unknown directive: :" ++ [x]
     "```" -> purityCodeBlock ""
     xs    -> runStmt xs

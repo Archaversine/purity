@@ -73,9 +73,11 @@ purityLoop :: Purity ()
 purityLoop = do 
     prompt <- gets $ view (intSettings.termPrompt)
 
-    input <- liftIO (putStr prompt >> getLine) 
-    catch (purityStmt input) prettyPrintError
+    purityRunLine =<< liftIO (putStr prompt >> getLine)
     purityLoop
+
+purityRunLine :: String -> Purity () 
+purityRunLine input = catch (purityStmt input) prettyPrintError
 
 prettyPrintError :: InterpreterError -> Purity ()
 prettyPrintError err = prettyPrintErrorStr $ case err of
@@ -104,6 +106,9 @@ printType xs = do
     info <- typeOf xs
     liftIO $ putStrLn $ xs ++ " :: " ++ info
 
+puritySourceFile :: FilePath -> Purity () 
+puritySourceFile path = liftIO (readFile path) >>= mapM_ purityRunLine . lines
+
 purityStmt :: String -> Purity ()
 purityStmt = \case 
     ":q"     -> liftIO exitSuccess -- For the vim users
@@ -113,6 +118,7 @@ purityStmt = \case
         | "importQ " `isPrefixOf` xs -> purityImportQ (parseImportQList $ tail $ words xs)
         | "import "  `isPrefixOf` xs -> purityImportStr $ tail $ words xs
         | "type "    `isPrefixOf` xs -> printType $ concat $ tail $ words xs
+        | "source "  `isPrefixOf` xs -> mapM_ puritySourceFile $ tail $ words xs
         | otherwise -> prettyPrintErrorStr $ "Unknown directive: #" ++ xs
     (':' : x : xs) 
         | x == 't' -> printType $ unwords $ words xs

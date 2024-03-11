@@ -12,6 +12,9 @@ splashText = Just $ mainColor <> "Purity" <> resetColor <> " - A Lazily Evaluate
 shellPrompt :: String 
 shellPrompt = mainColor <> " λ " <> resetColor
 
+blockPrompt :: Maybe String 
+blockPrompt = Just "| "
+
 defaultImports :: [String] 
 defaultImports = [ "Prelude"
                  ]

@@ -21,19 +21,20 @@ import System.IO
 
 import Language.Haskell.Interpreter hiding (get)
 
-data PurityState = PurityState { _intImports  :: [ModuleImport] 
-                               , _intSettings :: TermSettings 
+data PurityState = PurityState { _intImports  :: ![ModuleImport] 
+                               , _intSettings :: !TermSettings 
                                }
 
-data TermSettings = TermSettings { _termPrompt :: String  
-                                 , _termErrClr :: String 
+data TermSettings = TermSettings { _termPrompt :: !String  
+                                 , _termBlock  :: !String
+                                 , _termErrClr :: !String 
                                  }
 
 makeLenses ''PurityState
 makeLenses ''TermSettings
 
 defaultTermSettings :: TermSettings 
-defaultTermSettings = TermSettings "Purity > " ""
+defaultTermSettings = TermSettings "Purity > " "" ""
 
 defaultState :: PurityState 
 defaultState = PurityState [] defaultTermSettings
@@ -69,15 +70,17 @@ purityImportQ xs = do
 
     purityImport mods
 
+printPrompt :: Purity () 
+printPrompt = gets (view (intSettings.termPrompt)) >>= liftIO . putStr
+
+promptUser :: Purity String 
+promptUser = printPrompt >> liftIO getLine
+
 purityLoop :: Purity ()
-purityLoop = do 
-    prompt <- gets $ view (intSettings.termPrompt)
+purityLoop = promptUser >>= purityRunLine False >> purityLoop
 
-    purityRunLine =<< liftIO (putStr prompt >> getLine)
-    purityLoop
-
-purityRunLine :: String -> Purity () 
-purityRunLine input = catch (purityStmt input) prettyPrintError
+purityRunLine :: Bool -> String -> Purity () 
+purityRunLine inSource input = catch (purityStmt inSource input) prettyPrintError
 
 prettyPrintError :: InterpreterError -> Purity ()
 prettyPrintError err = prettyPrintErrorStr $ case err of
@@ -107,10 +110,20 @@ printType xs = do
     liftIO $ putStrLn $ xs ++ " :: " ++ info
 
 puritySourceFile :: FilePath -> Purity () 
-puritySourceFile path = liftIO (readFile path) >>= mapM_ purityRunLine . lines
+puritySourceFile path = liftIO (readFile path) >>= mapM_ (purityRunLine True) . lines
 
-purityStmt :: String -> Purity ()
-purityStmt = \case 
+purityCodeBlock :: Bool -> String -> Purity () 
+purityCodeBlock True _ = error "Code blocks in source files are not implemented yet."
+purityCodeBlock False curr = do 
+    block <- gets   $ view (intSettings.termBlock)
+    input <- liftIO $ putStr block >> getLine
+
+    case input of 
+        "```" -> purityRunLine True curr
+        _     -> purityCodeBlock False (curr <> "\n" <> input)
+
+purityStmt :: Bool -> String -> Purity ()
+purityStmt inSource = \case 
     ":q"     -> liftIO exitSuccess -- For the vim users
     "#quit"  -> liftIO exitSuccess 
     "#purge" -> reset >> (intImports .= [])
@@ -123,7 +136,8 @@ purityStmt = \case
     (':' : x : xs) 
         | x == 't' -> printType $ unwords $ words xs
         | otherwise -> prettyPrintErrorStr $ "Unknown directive: :" ++ [x]
-    xs -> runStmt xs
+    "```" -> purityCodeBlock inSource ""
+    xs    -> runStmt xs
 
 purity :: Purity ()
 purity = do 
@@ -132,9 +146,11 @@ purity = do
 
     prompt <- interpret "Config.shellPrompt" (as :: String)
     errClr <- fromMaybe "" <$> interpret "Config.errorColorPrefix" (as :: Maybe String)
+    block  <- fromMaybe "" <$> interpret "Config.blockPrompt"      (as :: Maybe String)
 
     let settings = defaultTermSettings & termPrompt .~ prompt
                                        & termErrClr .~ errClr
+                                       & termBlock  .~ block
 
     intSettings .= settings
 

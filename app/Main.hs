@@ -110,7 +110,14 @@ printType xs = do
     liftIO $ putStrLn $ xs ++ " :: " ++ info
 
 puritySourceFile :: FilePath -> Purity () 
-puritySourceFile path = liftIO (readFile path) >>= mapM_ (purityRunLine True) . lines
+puritySourceFile path = liftIO (lines <$> readFile path) >>= puritySourceLine ""
+
+puritySourceLine :: String -> [String] -> Purity ()
+puritySourceLine _ [] = return ()
+puritySourceLine [] ("```":ys) = puritySourceLine " " ys -- empty string means start of codeblock
+puritySourceLine xs ("```":ys) = purityRunLine True xs >> puritySourceLine "" ys
+puritySourceLine [] (y  :  ys) = purityRunLine True y >> puritySourceLine "" ys -- empty string means not in codeblock
+puritySourceLine xs (y  :  ys) = puritySourceLine (xs <> "\n" <> y) ys -- not empty string means in codeblock
 
 purityCodeBlock :: Bool -> String -> Purity () 
 purityCodeBlock True _ = error "Code blocks in source files are not implemented yet."

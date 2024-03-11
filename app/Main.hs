@@ -77,10 +77,10 @@ promptUser :: Purity String
 promptUser = printPrompt >> liftIO getLine
 
 purityLoop :: Purity ()
-purityLoop = promptUser >>= purityRunLine False >> purityLoop
+purityLoop = promptUser >>= purityRunLine >> purityLoop
 
-purityRunLine :: Bool -> String -> Purity () 
-purityRunLine inSource input = catch (purityStmt inSource input) prettyPrintError
+purityRunLine :: String -> Purity () 
+purityRunLine input = catch (purityStmt input) prettyPrintError
 
 prettyPrintError :: InterpreterError -> Purity ()
 prettyPrintError err = prettyPrintErrorStr $ case err of
@@ -115,22 +115,21 @@ puritySourceFile path = liftIO (lines <$> readFile path) >>= puritySourceLine ""
 puritySourceLine :: String -> [String] -> Purity ()
 puritySourceLine _ [] = return ()
 puritySourceLine [] ("```":ys) = puritySourceLine " " ys -- empty string means start of codeblock
-puritySourceLine xs ("```":ys) = purityRunLine True xs >> puritySourceLine "" ys
-puritySourceLine [] (y  :  ys) = purityRunLine True y >> puritySourceLine "" ys -- empty string means not in codeblock
+puritySourceLine xs ("```":ys) = purityRunLine xs >> puritySourceLine "" ys
+puritySourceLine [] (y  :  ys) = purityRunLine y >> puritySourceLine "" ys -- empty string means not in codeblock
 puritySourceLine xs (y  :  ys) = puritySourceLine (xs <> "\n" <> y) ys -- not empty string means in codeblock
 
-purityCodeBlock :: Bool -> String -> Purity () 
-purityCodeBlock True _ = error "Code blocks in source files are not implemented yet."
-purityCodeBlock False curr = do 
+purityCodeBlock :: String -> Purity () 
+purityCodeBlock curr = do 
     block <- gets   $ view (intSettings.termBlock)
     input <- liftIO $ putStr block >> getLine
 
     case input of 
-        "```" -> purityRunLine True curr
-        _     -> purityCodeBlock False (curr <> "\n" <> input)
+        "```" -> purityRunLine curr
+        _     -> purityCodeBlock (curr <> "\n" <> input)
 
-purityStmt :: Bool -> String -> Purity ()
-purityStmt inSource = \case 
+purityStmt :: String -> Purity ()
+purityStmt = \case 
     ":q"     -> liftIO exitSuccess -- For the vim users
     "#quit"  -> liftIO exitSuccess 
     "#purge" -> reset >> (intImports .= [])
@@ -143,7 +142,7 @@ purityStmt inSource = \case
     (':' : x : xs) 
         | x == 't' -> printType $ unwords $ words xs
         | otherwise -> prettyPrintErrorStr $ "Unknown directive: :" ++ [x]
-    "```" -> purityCodeBlock inSource ""
+    "```" -> purityCodeBlock ""
     xs    -> runStmt xs
 
 purity :: Purity ()

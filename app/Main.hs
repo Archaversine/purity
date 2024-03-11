@@ -150,8 +150,9 @@ purityStmt = \case
 
 purity :: Purity ()
 purity = do 
-    loadModules ["Config.hs"]
+    loadModules ["Config.hs", "User.hs"]
     purityImport [ModuleImport "Config" (QualifiedAs (Just "Config")) NoImportList]
+    purityImport [ModuleImport "User"   NotQualified                  NoImportList]
 
     prompt <- interpret "Config.shellPrompt" (as :: String)
     errClr <- fromMaybe "" <$> interpret "Config.errorColorPrefix" (as :: Maybe String)

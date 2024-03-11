@@ -6,13 +6,15 @@ import System.IO
 
 import qualified Language.Haskell.Interpreter as Hint
 
-purityImports :: Hint.InterpreterT IO ()
+type Interpreter = Hint.InterpreterT IO
+
+purityImports :: Interpreter ()
 purityImports = Hint.setImports ["Prelude"]
 
-purityLoop :: Hint.InterpreterT IO () 
+purityLoop :: Interpreter ()
 purityLoop = liftIO (putStr "Purity > " >> getLine) >>= Hint.runStmt >> purityLoop
 
-purity :: Hint.InterpreterT IO ()
+purity :: Interpreter ()
 purity = purityImports >> purityLoop
 
 main :: IO ()

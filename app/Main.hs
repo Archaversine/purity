@@ -22,6 +22,8 @@ import System.IO
 
 import Language.Haskell.Interpreter hiding (get)
 
+import qualified GHC
+
 data PurityState = PurityState { _intImports  :: ![ModuleImport] 
                                , _intSettings :: !TermSettings 
                                }
@@ -153,7 +155,12 @@ purityStmt = \case
         | x == 'k' -> printKind xs
         | otherwise -> prettyPrintErrorStr $ "Unknown directive: :" ++ [x]
     "```" -> purityCodeBlock ""
-    xs    -> runStmt xs
+    xs
+        | "data "     `isPrefixOf` xs -> runDecls xs
+        | "class "    `isPrefixOf` xs -> runDecls xs
+        | "newtype "  `isPrefixOf` xs -> runDecls xs
+        | "instance " `isPrefixOf` xs -> runDecls xs
+        | otherwise -> runStmt xs
 
 purity :: Purity ()
 purity = do 
@@ -173,6 +180,9 @@ purity = do
 
     interpret "Config.splashText"     (as :: Maybe String) >>= liftIO . putStrLn . fromMaybe ""
     interpret "Config.defaultImports" (as :: [String]    ) >>= purityImportStr >> purityLoop
+
+runDecls :: MonadInterpreter m => String -> m ()
+runDecls s = runGhc $ void $ GHC.runDecls s
 
 main :: IO ()
 main = do 

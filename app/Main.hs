@@ -45,5 +45,5 @@ main = do
     result <- runInterpreter (evalStateT purity defaultState)
 
     case result of 
-        Left err -> putStrLn $ "Error: " ++ show err
+        Left err -> putStrLn $ "Impossible Error: " ++ show err
         Right () -> return ()

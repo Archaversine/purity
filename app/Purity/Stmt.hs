@@ -38,7 +38,7 @@ purityStmt = \case
         | x == 't' -> printType xs
         | x == 'k' -> printKind xs
         | otherwise -> prettyPrintErrorStr $ "Unknown directive: :" ++ [x]
-    "```" -> purityCodeBlock ""
+    "```" -> codeBlock ""
     xs
         | "data "     `isPrefixOf` xs -> runDecls xs
         | "class "    `isPrefixOf` xs -> runDecls xs
@@ -56,11 +56,11 @@ sourceFileLine xs ("```":ys) = runLine xs >> sourceFileLine "" ys
 sourceFileLine [] (y  :  ys) = runLine y >> sourceFileLine "" ys -- empty string means not in codeblock
 sourceFileLine xs (y  :  ys) = sourceFileLine (xs <> "\n" <> y) ys -- not empty string means in codeblock
 
-purityCodeBlock :: String -> Purity () 
-purityCodeBlock curr = do 
+codeBlock :: String -> Purity () 
+codeBlock curr = do 
     block <- gets   $ view (intSettings.termBlock)
     input <- liftIO $ putStr block >> getLine
 
     case input of 
         "```" -> runLine curr
-        _     -> purityCodeBlock (curr <> "\n" <> input)
+        _     -> codeBlock (curr <> "\n" <> input)

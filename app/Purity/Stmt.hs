@@ -7,14 +7,14 @@ module Purity.Stmt (runLine, purityStmt) where
 import Control.Lens
 import Control.Monad.Catch
 
-import Data.List
-
 import Purity.Types
 import Purity.Imports
 import Purity.Errors
 import Purity.TypeInfo
 import Purity.Decls
 import Purity.Cmd
+import Purity.TermMode
+import Purity.Directive
 
 import System.Exit
 
@@ -28,15 +28,18 @@ runLine input = do
 
 purityStmt :: String -> Purity ()
 purityStmt = \case 
-    ":q"     -> liftIO exitSuccess -- For the vim users
-    "#quit"  -> liftIO exitSuccess 
-    "#purge" -> reset >> (intImports .= [])
+    "\\"         -> toggleTermMode
+    ":q"         -> liftIO exitSuccess -- For the vim users
+    "#quit"      -> liftIO exitSuccess 
+    "#purge"     -> reset >> (intImports .= [])
+    "#mode code" -> setTermMode CodeMode
+    "#mode cmd"  -> setTermMode CommandMode
     ('#' : xs) 
-        | "importQ " `isPrefixOf` xs -> purityImportQ (parseImportQList $ tail $ words xs)
-        | "import "  `isPrefixOf` xs -> purityImportStr $ tail $ words xs
-        | "type "    `isPrefixOf` xs -> printType $ concat $ tail $ words xs
-        | "kind "    `isPrefixOf` xs -> printKind $ concat $ tail $ words xs
-        | "source "  `isPrefixOf` xs -> mapM_ sourceFile $ tail $ words xs
+        | directive xs "importQ " -> purityImportQ (parseImportQList $ tail $ words xs)
+        | directive xs "import "  -> purityImportStr $ tail $ words xs
+        | directive xs "type "    -> printType $ concat $ tail $ words xs
+        | directive xs "kind "    -> printKind $ concat $ tail $ words xs
+        | directive xs "source "  -> mapM_ sourceFile $ tail $ words xs
         | otherwise -> prettyPrintErrorStr $ "Unknown directive: #" ++ xs
     (':' : x : xs) 
         | x == 't' -> printType xs

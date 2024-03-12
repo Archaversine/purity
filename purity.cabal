@@ -67,6 +67,8 @@ executable purity
                       Purity.TypeInfo
                       Purity.Stmt
                       Purity.Cmd
+                      Purity.TermMode
+                      Purity.Directive
                       Purity
 
     -- Modules included in this executable, other than Main.

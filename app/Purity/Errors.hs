@@ -1,4 +1,4 @@
-module Purity.Errors where
+module Purity.Errors (prettyPrintError, prettyPrintErrorStr) where
 
 import Control.Lens
 

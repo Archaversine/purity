@@ -1,4 +1,4 @@
-module Purity.Prompt where
+module Purity.Prompt (printPrompt, promptUser) where
 
 import Control.Lens
 

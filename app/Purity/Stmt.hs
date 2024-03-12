@@ -2,7 +2,7 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Purity.Stmt where
+module Purity.Stmt (runLine, purityStmt) where
 
 import Control.Lens
 import Control.Monad.Catch

@@ -1,6 +1,11 @@
 {-# LANGUAGE TypeApplications #-}
 
-module Purity.Imports where
+module Purity.Imports ( parseImportList 
+                      , parseImportQList 
+                      , purityImport 
+                      , purityImportStr
+                      , purityImportQ
+                      ) where
 
 import Control.Lens
 import Control.Monad.Catch

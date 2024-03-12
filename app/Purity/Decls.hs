@@ -1,4 +1,4 @@
-module Purity.Decls where 
+module Purity.Decls (runDecls) where 
 
 import Purity.Types
 

@@ -1,4 +1,4 @@
-module Purity.TypeInfo where
+module Purity.TypeInfo (printType, printKind) where
 
 import Control.Monad.IO.Class
 

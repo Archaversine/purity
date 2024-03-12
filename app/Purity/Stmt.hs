@@ -32,7 +32,7 @@ purityStmt = \case
         | "import "  `isPrefixOf` xs -> purityImportStr $ tail $ words xs
         | "type "    `isPrefixOf` xs -> printType $ concat $ tail $ words xs
         | "kind "    `isPrefixOf` xs -> printKind $ concat $ tail $ words xs
-        | "source "  `isPrefixOf` xs -> mapM_ puritySourceFile $ tail $ words xs
+        | "source "  `isPrefixOf` xs -> mapM_ sourceFile $ tail $ words xs
         | otherwise -> prettyPrintErrorStr $ "Unknown directive: #" ++ xs
     (':' : x : xs) 
         | x == 't' -> printType xs
@@ -46,15 +46,15 @@ purityStmt = \case
         | "instance " `isPrefixOf` xs -> runDecls xs
         | otherwise -> runStmt xs
 
-puritySourceFile :: FilePath -> Purity () 
-puritySourceFile path = liftIO (lines <$> readFile path) >>= puritySourceLine ""
+sourceFile :: FilePath -> Purity () 
+sourceFile path = liftIO (lines <$> readFile path) >>= sourceFileLine ""
 
-puritySourceLine :: String -> [String] -> Purity ()
-puritySourceLine _ [] = return ()
-puritySourceLine [] ("```":ys) = puritySourceLine " " ys -- empty string means start of codeblock
-puritySourceLine xs ("```":ys) = purityRunLine xs >> puritySourceLine "" ys
-puritySourceLine [] (y  :  ys) = purityRunLine y >> puritySourceLine "" ys -- empty string means not in codeblock
-puritySourceLine xs (y  :  ys) = puritySourceLine (xs <> "\n" <> y) ys -- not empty string means in codeblock
+sourceFileLine :: String -> [String] -> Purity ()
+sourceFileLine _ [] = return ()
+sourceFileLine [] ("```":ys) = sourceFileLine " " ys -- empty string means start of codeblock
+sourceFileLine xs ("```":ys) = purityRunLine xs >> sourceFileLine "" ys
+sourceFileLine [] (y  :  ys) = purityRunLine y >> sourceFileLine "" ys -- empty string means not in codeblock
+sourceFileLine xs (y  :  ys) = sourceFileLine (xs <> "\n" <> y) ys -- not empty string means in codeblock
 
 purityCodeBlock :: String -> Purity () 
 purityCodeBlock curr = do 

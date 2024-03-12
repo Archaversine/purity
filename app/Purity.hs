@@ -15,7 +15,7 @@ import Purity.Prompt
 import Purity.Stmt
 
 purityLoop :: Purity ()
-purityLoop = promptUser >>= purityRunLine >> purityLoop
+purityLoop = promptUser >>= runLine >> purityLoop
 
 purity :: Purity ()
 purity = do 

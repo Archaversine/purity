@@ -17,8 +17,8 @@ import Purity.Decls
 
 import System.Exit
 
-purityRunLine :: String -> Purity () 
-purityRunLine input = catch (catch (purityStmt input) prettyPrintError) $ \case
+runLine :: String -> Purity () 
+runLine input = catch (catch (purityStmt input) prettyPrintError) $ \case
     (fromException -> Just ExitSuccess) -> liftIO exitSuccess -- rethrow exit success to actually exit the program
     e -> prettyPrintErrorStr $ "Interpreter Exception: " ++ show @SomeException e
 
@@ -52,8 +52,8 @@ sourceFile path = liftIO (lines <$> readFile path) >>= sourceFileLine ""
 sourceFileLine :: String -> [String] -> Purity ()
 sourceFileLine _ [] = return ()
 sourceFileLine [] ("```":ys) = sourceFileLine " " ys -- empty string means start of codeblock
-sourceFileLine xs ("```":ys) = purityRunLine xs >> sourceFileLine "" ys
-sourceFileLine [] (y  :  ys) = purityRunLine y >> sourceFileLine "" ys -- empty string means not in codeblock
+sourceFileLine xs ("```":ys) = runLine xs >> sourceFileLine "" ys
+sourceFileLine [] (y  :  ys) = runLine y >> sourceFileLine "" ys -- empty string means not in codeblock
 sourceFileLine xs (y  :  ys) = sourceFileLine (xs <> "\n" <> y) ys -- not empty string means in codeblock
 
 purityCodeBlock :: String -> Purity () 
@@ -62,5 +62,5 @@ purityCodeBlock curr = do
     input <- liftIO $ putStr block >> getLine
 
     case input of 
-        "```" -> purityRunLine curr
+        "```" -> runLine curr
         _     -> purityCodeBlock (curr <> "\n" <> input)

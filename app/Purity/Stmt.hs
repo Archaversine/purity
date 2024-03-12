@@ -39,12 +39,7 @@ purityStmt = \case
         | x == 'k' -> printKind xs
         | otherwise -> prettyPrintErrorStr $ "Unknown directive: :" ++ [x]
     "```" -> codeBlock ""
-    xs
-        | "data "     `isPrefixOf` xs -> runDecls xs
-        | "class "    `isPrefixOf` xs -> runDecls xs
-        | "newtype "  `isPrefixOf` xs -> runDecls xs
-        | "instance " `isPrefixOf` xs -> runDecls xs
-        | otherwise -> runStmt xs
+    xs -> runStmtOrDecls xs
 
 sourceFile :: FilePath -> Purity () 
 sourceFile path = liftIO (lines <$> readFile path) >>= sourceFileLine ""

@@ -14,13 +14,17 @@ import Purity.Imports
 import Purity.Errors
 import Purity.TypeInfo
 import Purity.Decls
+import Purity.Cmd
 
 import System.Exit
 
 runLine :: String -> Purity () 
-runLine input = catch (catch (purityStmt input) prettyPrintError) $ \case
-    (fromException -> Just ExitSuccess) -> liftIO exitSuccess -- rethrow exit success to actually exit the program
-    e -> prettyPrintErrorStr $ "Interpreter Exception: " ++ show @SomeException e
+runLine input = do 
+    input' <- formatInput input
+
+    catch (catch (purityStmt input') prettyPrintError) $ \case
+        (fromException -> Just ExitSuccess) -> liftIO exitSuccess -- rethrow exit success to actually exit the program
+        e -> prettyPrintErrorStr $ "Interpreter Exception: " ++ show @SomeException e
 
 purityStmt :: String -> Purity ()
 purityStmt = \case 

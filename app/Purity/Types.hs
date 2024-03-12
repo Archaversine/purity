@@ -2,7 +2,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Purity.Types ( PurityState, intImports, intSettings
-                    , TermSettings, termPrompt, termBlock, termErrClr
+                    , TermSettings, termPrompt, termBlock, termErrClr, termMode
+                    , TerminalMode(..)
                     , defaultTermSettings
                     , defaultState
                     , Purity
@@ -22,13 +23,16 @@ data PurityState = PurityState { _intImports  :: ![ModuleImport]
 data TermSettings = TermSettings { _termPrompt :: !String  
                                  , _termBlock  :: !String
                                  , _termErrClr :: !String 
+                                 , _termMode   :: !TerminalMode
                                  }
+
+data TerminalMode = CodeMode | CommandMode deriving Eq
 
 makeLenses ''PurityState
 makeLenses ''TermSettings
 
 defaultTermSettings :: TermSettings 
-defaultTermSettings = TermSettings "Purity > " "" ""
+defaultTermSettings = TermSettings "Purity > " "" "" CommandMode
 
 defaultState :: PurityState 
 defaultState = PurityState [] defaultTermSettings

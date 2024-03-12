@@ -66,6 +66,7 @@ executable purity
                       Purity.Prompt
                       Purity.TypeInfo
                       Purity.Stmt
+                      Purity
 
     -- Modules included in this executable, other than Main.
     -- other-modules:

@@ -3,7 +3,8 @@ module Purity ( module Purity.Types
               , module Purity.Prompt 
               , module Purity.Stmt
               , purity 
-              , purityLoop) where 
+              , purityLoop
+              ) where 
 
 import Control.Lens
 

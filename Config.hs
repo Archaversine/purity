@@ -9,8 +9,11 @@ resetColor = "\ESC[0m"
 splashText :: Maybe String 
 splashText = Just $ mainColor <> "Purity" <> resetColor <> " - A Lazily Evaluated Purely Functional Terminal\n"
 
-shellPrompt :: String 
-shellPrompt = mainColor <> " λ " <> resetColor
+commandPrompt :: String 
+commandPrompt = mainColor <> " λ " <> resetColor
+
+codePrompt :: String 
+codePrompt = mainColor <> " λ" <> resetColor <> "= "
 
 blockPrompt :: Maybe String 
 blockPrompt = Just "| "

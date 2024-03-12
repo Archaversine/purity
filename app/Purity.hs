@@ -24,13 +24,15 @@ purity = do
     purityImport [ModuleImport "Config" (QualifiedAs (Just "Config")) NoImportList]
     purityImport [ModuleImport "User"   NotQualified                  NoImportList]
 
-    prompt <- interpret "Config.shellPrompt" (as :: String)
-    errClr <- fromMaybe "" <$> interpret "Config.errorColorPrefix" (as :: Maybe String)
-    block  <- fromMaybe "" <$> interpret "Config.blockPrompt"      (as :: Maybe String)
+    cmdPrompt  <- interpret "Config.commandPrompt" (as :: String)
+    codePrmopt <- interpret "Config.codePrompt"    (as :: String)
+    errClr     <- fromMaybe "" <$> interpret "Config.errorColorPrefix" (as :: Maybe String)
+    block      <- fromMaybe "" <$> interpret "Config.blockPrompt"      (as :: Maybe String)
 
-    let settings = defaultTermSettings & termPrompt .~ prompt
-                                       & termErrClr .~ errClr
-                                       & termBlock  .~ block
+    let settings = defaultTermSettings & termCmdPrompt  .~ cmdPrompt
+                                       & termCodePrompt .~ codePrmopt
+                                       & termErrClr     .~ errClr
+                                       & termBlock      .~ block
 
     intSettings .= settings
 

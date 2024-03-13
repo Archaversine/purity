@@ -34,11 +34,12 @@ formatWords :: [String] -> [String]
 formatWords [] = [] 
 formatWords ([]:xs) = formatWords xs
 formatWords (x:xs) 
-    | "." == x                = show x : next
-    | ".." == x               = show x : next
-    | '"' == head x           = x      : next
-    | all isNumber x          = x      : next
-    | all haskellSymbolChar x = x      : next
-    | isUpper (head x)        = x      : next
-    | otherwise               = show x : next
+    | "." == x                       = show x : next
+    | ".." == x                      = show x : next
+    | '"' == head x                  = x      : next
+    | '(' == head x && ')' == last x = x      : next
+    | all isNumber x                 = x      : next
+    | all haskellSymbolChar x        = x      : next
+    | isUpper (head x)               = x      : next
+    | otherwise                      = show x : next
     where next = formatWords xs

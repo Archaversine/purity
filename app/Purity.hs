@@ -43,10 +43,12 @@ purity = do
     cwd  <- liftIO getCurrentDirectory
     path <- liftIO getExecutablePath
 
+    -- Prefer to be in same directory as the executable
     configFile <- liftIO $ doesFileExist (path </> "Config.hs") >>= \case 
         True  -> return (path </> "Config.hs")
         False -> return (cwd  </> "Config.hs")
 
+    -- Prefer to be in same directory as the executable
     userFile   <- liftIO $ doesFileExist (path </> "User.hs") >>= \case 
         True  -> return (path </> "User.hs")
         False -> return (cwd  </> "User.hs")

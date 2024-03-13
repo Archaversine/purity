@@ -2,7 +2,7 @@
 
 A purely functional terminal shell for general purpose usage and scripting.
 
-Preview picture to be put here
+![Purity Preview](https://github.com/Archaversine/purity/blob/main/pictures/preview.png)
 
 ## Configuration 
 
@@ -79,17 +79,19 @@ running.
 ### Code Blocks
 
 There are times where multiple lines are neater to use than a single line. For 
-this, Purity offers code blocks. These are defined by the `\`\`\`` delimieter.
+this, Purity offers code blocks. These are defined with triple backticks.
 
 For example:
 
-```haskell 
+````haskell 
 
 -- This will run as a singular expression
-\`\`\`
+```
 let fib 0 = 0 
     fib 1 = 1 
     fib n = fib (n - 1) + fib (n - 2)
-\`\`\`
-
 ```
+
+````
+
+Code blocks are also supported in the shell itself.

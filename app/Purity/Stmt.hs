@@ -17,6 +17,7 @@ import Purity.TermMode
 import Purity.Directive
 
 import System.Exit
+import System.Process (callCommand)
 
 runLine :: String -> Purity () 
 runLine input = gets (view (intSettings.termMode)) >>= \case
@@ -24,19 +25,19 @@ runLine input = gets (view (intSettings.termMode)) >>= \case
     CommandMode -> runLineAsCommand input
 
 runLineAsCode :: String -> Purity () 
-runLineAsCode input = catch (purityStmt input) $ \case 
-    (fromException -> Just ExitSuccess) -> liftIO exitSuccess 
-    (fromException -> Just e@(UnknownError {})) -> prettyPrintError e
-    (fromException -> Just e@(NotAllowed   {})) -> prettyPrintError e 
-    (fromException -> Just e@(GhcException {})) -> prettyPrintError e 
-    (fromException -> Just e@(WontCompile  {})) -> prettyPrintError e
-    e -> prettyPrintErrorStr $ "Interpreter Exception: " ++ show @SomeException e
+runLineAsCode input = catch (purityStmt input) handleError
 
 runLineAsCommand :: String -> Purity () 
 runLineAsCommand input = do 
     formatted <- formatInput input
-    catch @_ @SomeException (purityStmt formatted) $ \_ -> do
-        catch @_ @SomeException (purityStmt input) (const $ runLineAsCode formatted)
+    catch @_ @SomeException (purityStmt formatted) $ \e -> do -- Try to run as command with auto formatting
+        catch @_ @SomeException (purityStmt input) $ \_ -> do -- Try to run as command without auto formatting
+            catch @_ @SomeException (runLineAsExternal input) (const $ handleError e) -- Try to run as external command
+
+            -- If all fails, throw the original error from running with auto formatting
+
+runLineAsExternal :: String -> Purity () 
+runLineAsExternal = liftIO . callCommand
 
 purityStmt :: String -> Purity ()
 purityStmt = \case 

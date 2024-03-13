@@ -6,6 +6,7 @@ module Purity ( module Purity.Types
               , module Purity.Stmt
               , purity 
               , purityLoop
+              , runPurity
               ) where 
 
 import Control.Lens
@@ -17,6 +18,7 @@ import Purity.Imports
 import Purity.Prompt
 import Purity.Stmt
 
+import System.Console.Haskeline
 import System.Environment
 import System.Directory
 import System.FilePath
@@ -61,3 +63,6 @@ purity = do
 
     interpret "Config.splashText"     (as :: Maybe String) >>= liftIO . putStrLn . fromMaybe ""
     interpret "Config.defaultImports" (as :: [String]    ) >>= purityImportStr >> purityLoop
+
+runPurity :: MonadIO m => Purity a -> m (Either InterpreterError a) 
+runPurity p = liftIO $ runInterpreter $ runInputT defaultSettings (evalStateT p defaultState)

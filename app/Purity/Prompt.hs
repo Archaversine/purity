@@ -1,16 +1,23 @@
-module Purity.Prompt (printPrompt, promptUser) where
+module Purity.Prompt (getPrompt, promptUser) where
+
+import Data.Maybe
 
 import Control.Lens
 
 import Purity.Types
 
-printPrompt :: Purity () 
-printPrompt = do 
+import System.Console.Haskeline
+
+getPrompt :: Purity String
+getPrompt = do 
     settings <- get
 
-    liftIO $ putStr $ case settings^.intSettings.termMode of 
+    return $ case settings^.intSettings.termMode of 
         CodeMode    -> settings^.intSettings.termCodePrompt
         CommandMode -> settings^.intSettings.termCmdPrompt
 
+purityGetLine :: String -> Purity (Maybe String)
+purityGetLine = lift . getInputLine
+
 promptUser :: Purity String 
-promptUser = printPrompt >> liftIO getLine
+promptUser = getPrompt >>= fmap (fromMaybe "") . purityGetLine

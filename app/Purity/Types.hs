@@ -16,6 +16,8 @@ import Control.Monad.State
 
 import Language.Haskell.Interpreter hiding (set, get)
 
+import System.Console.Haskeline
+
 data PurityState = PurityState { _intImports  :: ![ModuleImport] 
                                , _intSettings :: !TermSettings 
                                }
@@ -40,9 +42,9 @@ defaultTermSettings = TermSettings defaultCmd defaultCode "" "" CommandMode
 defaultState :: PurityState 
 defaultState = PurityState [] defaultTermSettings
 
-type Purity = StateT PurityState (InterpreterT IO)
+type Purity = StateT PurityState (InputT (InterpreterT IO))
 
 instance MonadInterpreter Purity where
-    fromSession          = lift . fromSession
-    modifySessionRef t f = lift $ modifySessionRef t f
-    runGhc x             = lift $ runGhc x
+    fromSession          = lift . lift . fromSession
+    modifySessionRef t f = lift $ lift $ modifySessionRef t f
+    runGhc x             = lift $ lift $ runGhc x

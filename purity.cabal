@@ -78,7 +78,7 @@ executable purity
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.17.0.0, hint, ghc, mtl, exceptions, lens, process, directory, filepath
+    build-depends:    base ^>=4.17.0.0, hint, ghc, mtl, exceptions, lens, process, directory, filepath, haskeline
 
     -- Directories containing source files.
     hs-source-dirs:   app

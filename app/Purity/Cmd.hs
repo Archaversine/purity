@@ -48,7 +48,7 @@ formatWords (x:xs)
     | all isNumber x                  = ret x
     | all haskellSymbolChar x         = ret x
     | isUpper (head x)                = ret x
-    | otherwise                       = ret x
+    | otherwise                       = ret (show x)
     where next   = formatWords xs
           ret a  = (a:) <$> next
           ret' a = (:) <$> a <*> next

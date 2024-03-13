@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Main where
 
@@ -11,9 +11,6 @@ import System.IO
 main :: IO ()
 main = do 
     hSetBuffering stdout NoBuffering
-
-    result <- runInterpreter (evalStateT purity defaultState)
-
-    case result of 
+    runInterpreter (evalStateT purity defaultState) >>= \case
         Left err -> putStrLn $ "Impossible Error: " ++ show err
         Right () -> return ()

@@ -1,5 +1,4 @@
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Purity.Stmt (runLine, purityStmt) where
@@ -16,8 +15,9 @@ import Purity.Cmd
 import Purity.TermMode
 import Purity.Directive
 
+import System.Directory
 import System.Exit
-import System.Process (callCommand)
+import System.Process
 
 runLine :: String -> Purity () 
 runLine input = gets (view (intSettings.termMode)) >>= \case
@@ -37,7 +37,13 @@ runLineAsCommand input = do
             -- If all fails, throw the original error from running with auto formatting
 
 runLineAsExternal :: String -> Purity () 
-runLineAsExternal = liftIO . callCommand
+runLineAsExternal cmd = do 
+    let (x:xs) = words cmd
+    (_, out, err) <- liftIO $ readProcessWithExitCode x xs ""
+
+    liftIO (findExecutable x) >>= \case 
+        Just _  -> liftIO (putStr out) >> prettyPrintErrorStr err
+        Nothing -> throwM $ UnknownError $ "External command not found: " ++ x
 
 purityStmt :: String -> Purity ()
 purityStmt = \case 

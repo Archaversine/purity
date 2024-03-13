@@ -5,9 +5,13 @@ module Purity.Cmd where
 import Control.Lens
 
 import Data.Char
+import Data.List
 
 import Purity.Types
 import Purity.Directive
+
+import System.FilePath
+import System.Directory
 
 haskellSymbolChar :: Char -> Bool 
 haskellSymbolChar = (`elem` "!#$%&*+./<=>?@\\^|-~")
@@ -28,18 +32,23 @@ formatInput input
     CommandMode -> case wordsAndStrings input of 
         []     -> return "" 
         [x]    -> return x
-        (x:xs) -> return $ unwords (x : formatWords xs)
+        (x:xs) -> unwords . (x:) <$> formatWords xs
 
-formatWords :: [String] -> [String]
-formatWords [] = [] 
+formatWords :: [String] -> Purity [String]
+formatWords [] = return [] 
 formatWords ([]:xs) = formatWords xs
 formatWords (x:xs) 
-    | "." == x                       = show x : next
-    | ".." == x                      = show x : next
-    | '"' == head x                  = x      : next
-    | '(' == head x && ')' == last x = x      : next
-    | all isNumber x                 = x      : next
-    | all haskellSymbolChar x        = x      : next
-    | isUpper (head x)               = x      : next
-    | otherwise                      = show x : next
-    where next = formatWords xs
+    | "."  == x                       = ret' (show <$> liftIO getCurrentDirectory)
+    | ".." == x                       = ret' (show . takeDirectory <$> liftIO getCurrentDirectory)
+    | "./"  `isPrefixOf` x            = ret' (show <$> liftIO (makeAbsolute x))
+    | "../" `isPrefixOf` x            = ret' (show <$> liftIO (makeAbsolute x))
+    | '"'  == head x && '"' == last x = ret x
+    | '\'' == head x                  = ret (tail x)
+    | '('  == head x && ')' == last x = ret x
+    | all isNumber x                  = ret x
+    | all haskellSymbolChar x         = ret x
+    | isUpper (head x)                = ret x
+    | otherwise                       = ret x
+    where next   = formatWords xs
+          ret a  = (a:) <$> next
+          ret' a = (:) <$> a <*> next

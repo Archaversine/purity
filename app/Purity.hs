@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Purity ( module Purity.Types 
               , module Purity.Imports 
               , module Purity.Prompt 
@@ -14,6 +16,10 @@ import Purity.Types
 import Purity.Imports 
 import Purity.Prompt
 import Purity.Stmt
+
+import System.Environment
+import System.Directory
+import System.FilePath
 
 purityLoop :: Purity ()
 purityLoop = promptUser >>= runLine >> purityLoop
@@ -34,7 +40,18 @@ loadConfig = do
 
 purity :: Purity ()
 purity = do 
-    loadModules ["Config.hs", "User.hs"]
+    cwd  <- liftIO getCurrentDirectory
+    path <- liftIO getExecutablePath
+
+    configFile <- liftIO $ doesFileExist (path </> "Config.hs") >>= \case 
+        True  -> return (path </> "Config.hs")
+        False -> return (cwd  </> "Config.hs")
+
+    userFile   <- liftIO $ doesFileExist (path </> "User.hs") >>= \case 
+        True  -> return (path </> "User.hs")
+        False -> return (cwd  </> "User.hs")
+
+    loadModules  [configFile, userFile]
     purityImport [ModuleImport "Config" (QualifiedAs (Just "Config")) NoImportList]
     purityImport [ModuleImport "User"   NotQualified                  NoImportList]
 

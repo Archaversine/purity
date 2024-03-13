@@ -12,5 +12,5 @@ main :: IO ()
 main = do 
     hSetBuffering stdout NoBuffering
     runInterpreter (evalStateT purity defaultState) >>= \case
-        Left err -> putStrLn $ "Impossible Error: " ++ show err
+        Left err -> putStrLn $ "Unrecoverable Crash: " ++ show err
         Right () -> return ()

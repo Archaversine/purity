@@ -28,8 +28,8 @@ purityLoop = promptUser >>= runLine >> purityLoop
 
 loadConfig :: Purity ()
 loadConfig = do 
-    cmdPrompt  <- interpret "Config.commandPrompt" (as :: String)
-    codePrmopt <- interpret "Config.codePrompt"    (as :: String)
+    cmdPrompt  <- interpret "Config.commandPrompt" (as :: FilePath -> String)
+    codePrmopt <- interpret "Config.codePrompt"    (as :: FilePath -> String)
     errClr     <- fromMaybe "" <$> interpret "Config.errorColorPrefix" (as :: Maybe String)
     block      <- fromMaybe "" <$> interpret "Config.blockPrompt"      (as :: Maybe String)
 

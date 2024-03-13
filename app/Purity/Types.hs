@@ -22,8 +22,8 @@ data PurityState = PurityState { _intImports  :: ![ModuleImport]
                                , _intSettings :: !TermSettings 
                                }
 
-data TermSettings = TermSettings { _termCmdPrompt  :: !String  
-                                 , _termCodePrompt :: !String
+data TermSettings = TermSettings { _termCmdPrompt  :: !(FilePath -> String)
+                                 , _termCodePrompt :: !(FilePath -> String)
                                  , _termBlock      :: !String
                                  , _termErrClr     :: !String 
                                  , _termMode       :: !TerminalMode
@@ -36,8 +36,8 @@ makeLenses ''TermSettings
 
 defaultTermSettings :: TermSettings 
 defaultTermSettings = TermSettings defaultCmd defaultCode "" "" CommandMode
-    where defaultCmd  = "Purity > "
-          defaultCode = "Purity = "
+    where defaultCmd  = const "Purity > "
+          defaultCode = const "Purity = "
 
 defaultState :: PurityState 
 defaultState = PurityState [] defaultTermSettings

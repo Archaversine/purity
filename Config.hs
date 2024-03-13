@@ -1,19 +1,30 @@
 module Config where 
 
+import System.FilePath
+
 mainColor :: String 
 mainColor = "\ESC[35m"
 
 resetColor :: String 
 resetColor = "\ESC[0m"
 
+boldColor :: String 
+boldColor = "\ESC[1m"
+
 splashText :: Maybe String 
 splashText = Just $ mainColor <> "Purity" <> resetColor <> " - A Lazily Evaluated Purely Functional Terminal\n"
 
-commandPrompt :: String 
-commandPrompt = mainColor <> " λ " <> resetColor
+commandPrompt :: FilePath -> String 
+commandPrompt path = mconcat [ mainColor 
+                             , " λ "
+                             , resetColor, boldColor 
+                             , "(" <> takeBaseName path <> ")"
+                             , resetColor 
+                             , " "
+                             ]
 
-codePrompt :: String 
-codePrompt = mainColor <> " λ" <> resetColor <> "= "
+codePrompt :: FilePath -> String 
+codePrompt _ = mainColor <> " λ" <> resetColor <> "= "
 
 blockPrompt :: Maybe String 
 blockPrompt = Just "| "

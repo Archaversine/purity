@@ -7,8 +7,9 @@ import Control.Lens
 import Purity.Types
 
 import System.Console.Haskeline
+import System.Directory
 
-getPrompt :: Purity String
+getPrompt :: Purity (FilePath -> String)
 getPrompt = do 
     settings <- get
 
@@ -20,4 +21,10 @@ purityGetLine :: String -> Purity (Maybe String)
 purityGetLine = lift . getInputLine
 
 promptUser :: Purity String 
-promptUser = getPrompt >>= fmap (fromMaybe "") . purityGetLine
+promptUser = do 
+    cwd    <- liftIO getCurrentDirectory
+    prompt <- getPrompt 
+    input  <- purityGetLine (prompt cwd)
+
+    return (fromMaybe "" input)
+

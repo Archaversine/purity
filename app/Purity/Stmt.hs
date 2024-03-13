@@ -23,10 +23,6 @@ runLine input = gets (view (intSettings.termMode)) >>= \case
     CodeMode    -> runLineAsCode    input
     CommandMode -> runLineAsCommand input
 
-    --catch (catch (purityStmt input') prettyPrintError) $ \case
-    --    (fromException -> Just ExitSuccess) -> liftIO exitSuccess -- rethrow exit success to actually exit the program
-    --    e -> prettyPrintErrorStr $ "Interpreter Exception: " ++ show @SomeException e
-
 runLineAsCode :: String -> Purity () 
 runLineAsCode input = catch (purityStmt input) $ \case 
     (fromException -> Just ExitSuccess) -> liftIO exitSuccess 

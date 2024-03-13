@@ -16,7 +16,7 @@ haskellSymbolChar = (`elem` "!#$%&*+./<=>?@\\^|-~")
 wordsAndStrings :: String -> [String] 
 wordsAndStrings [] = [] 
 wordsAndStrings ('"':xs) = let (word, rest) = break (== '"') xs in 
-    ('"' : word ++ "\"") : wordsAndStrings (dropWhile isSpace $ drop 1 rest)
+   show word : wordsAndStrings (dropWhile isSpace $ drop 1 rest)
 wordsAndStrings xs = let (word, rest) = break isSpace xs in
     word : wordsAndStrings (dropWhile isSpace rest)
 

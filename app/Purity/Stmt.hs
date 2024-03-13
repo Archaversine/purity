@@ -19,12 +19,28 @@ import Purity.Directive
 import System.Exit
 
 runLine :: String -> Purity () 
-runLine input = do 
-    input' <- formatInput input
+runLine input = gets (view (intSettings.termMode)) >>= \case
+    CodeMode    -> runLineAsCode    input
+    CommandMode -> runLineAsCommand input
 
-    catch (catch (purityStmt input') prettyPrintError) $ \case
-        (fromException -> Just ExitSuccess) -> liftIO exitSuccess -- rethrow exit success to actually exit the program
-        e -> prettyPrintErrorStr $ "Interpreter Exception: " ++ show @SomeException e
+    --catch (catch (purityStmt input') prettyPrintError) $ \case
+    --    (fromException -> Just ExitSuccess) -> liftIO exitSuccess -- rethrow exit success to actually exit the program
+    --    e -> prettyPrintErrorStr $ "Interpreter Exception: " ++ show @SomeException e
+
+runLineAsCode :: String -> Purity () 
+runLineAsCode input = catch (purityStmt input) $ \case 
+    (fromException -> Just ExitSuccess) -> liftIO exitSuccess 
+    (fromException -> Just e@(UnknownError {})) -> prettyPrintError e
+    (fromException -> Just e@(NotAllowed   {})) -> prettyPrintError e 
+    (fromException -> Just e@(GhcException {})) -> prettyPrintError e 
+    (fromException -> Just e@(WontCompile  {})) -> prettyPrintError e
+    e -> prettyPrintErrorStr $ "Interpreter Exception: " ++ show @SomeException e
+
+runLineAsCommand :: String -> Purity () 
+runLineAsCommand input = do 
+    formatted <- formatInput input
+    catch @_ @SomeException (purityStmt formatted) $ \_ -> do
+        catch @_ @SomeException (purityStmt input) (const $ runLineAsCode formatted)
 
 purityStmt :: String -> Purity ()
 purityStmt = \case 

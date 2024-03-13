@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeApplications #-}
+
 module Purity.Decls (runDecls, runStmtOrDecls) where 
 
 import Data.Char

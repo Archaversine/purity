@@ -14,9 +14,11 @@ import Purity.Decls
 import Purity.Cmd
 import Purity.TermMode
 import Purity.Directive
+import Purity.Directory
 
 import System.Directory
 import System.Exit
+import System.FilePath
 
 runLine :: String -> Purity () 
 runLine input = gets (view (intSettings.termMode)) >>= \case
@@ -66,7 +68,9 @@ purityStmt = \case
     xs -> runStmtOrDecls xs
 
 sourceFile :: FilePath -> Purity () 
-sourceFile path = liftIO (lines <$> readFile path) >>= sourceFileLine ""
+sourceFile path = do 
+    cwd <- getPurityCWD
+    liftIO (lines <$> readFile (cwd </> path)) >>= sourceFileLine ""
 
 sourceFileLine :: String -> [String] -> Purity ()
 sourceFileLine _ [] = return ()

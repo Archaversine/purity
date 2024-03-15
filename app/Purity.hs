@@ -46,18 +46,23 @@ purity = do
     path <- liftIO getExecutablePath
 
     -- Prefer to be in same directory as the executable
-    configFile <- liftIO $ doesFileExist (path </> "Config.hs") >>= \case 
+    configFile  <- liftIO $ doesFileExist (path </> "Config.hs") >>= \case 
         True  -> return (path </> "Config.hs")
         False -> return (cwd  </> "Config.hs")
 
     -- Prefer to be in same directory as the executable
-    userFile   <- liftIO $ doesFileExist (path </> "User.hs") >>= \case 
+    userFile    <- liftIO $ doesFileExist (path </> "User.hs") >>= \case 
         True  -> return (path </> "User.hs")
         False -> return (cwd  </> "User.hs")
 
-    loadModules  [configFile, userFile]
-    purityImport [ModuleImport "Config" (QualifiedAs (Just "Config")) NoImportList]
-    purityImport [ModuleImport "User"   NotQualified                  NoImportList]
+    builtinFile <- liftIO $ doesFileExist (path </> "Builtin.hs") >>= \case 
+        True  -> return (path </> "Builtin.hs")
+        False -> return (cwd  </> "Builtin.hs")
+
+    loadModules  [configFile, userFile, builtinFile]
+    purityImport [ModuleImport "Config"  (QualifiedAs (Just "Config")) NoImportList]
+    purityImport [ModuleImport "User"    NotQualified                  NoImportList]
+    purityImport [ModuleImport "Builtin" NotQualified                  NoImportList]
 
     loadConfig
 

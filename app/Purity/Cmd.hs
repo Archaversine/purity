@@ -9,6 +9,7 @@ import Data.List
 
 import Purity.Types
 import Purity.Directive
+import Purity.Directory
 
 import System.FilePath
 import System.Directory
@@ -38,8 +39,8 @@ formatWords :: [String] -> Purity [String]
 formatWords [] = return [] 
 formatWords ([]:xs) = formatWords xs
 formatWords (x:xs) 
-    | "."  == x                       = ret' (show <$> liftIO getCurrentDirectory)
-    | ".." == x                       = ret' (show . takeDirectory <$> liftIO getCurrentDirectory)
+    | "."  == x                       = ret' (show <$> getPurityCWD)
+    | ".." == x                       = ret' (show . takeDirectory <$> getPurityCWD)
     | "./"  `isPrefixOf` x            = ret' (show <$> liftIO (makeAbsolute x))
     | "../" `isPrefixOf` x            = ret' (show <$> liftIO (makeAbsolute x))
     | '"'  == head x && '"' == last x = ret x

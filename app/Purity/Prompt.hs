@@ -5,6 +5,7 @@ import Data.Maybe
 import Control.Lens
 
 import Purity.Types
+import Purity.Directory
 
 import System.Console.Haskeline
 import System.Directory
@@ -22,9 +23,9 @@ purityGetLine = lift . getInputLine
 
 promptUser :: Purity String 
 promptUser = do 
-    cwd    <- liftIO getCurrentDirectory
+    dir    <- getPurityCWD
     prompt <- getPrompt 
-    input  <- purityGetLine (prompt cwd)
+    input  <- purityGetLine (prompt dir)
 
     return (fromMaybe "" input)
 

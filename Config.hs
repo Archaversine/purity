@@ -31,6 +31,7 @@ blockPrompt = Just "| "
 
 defaultImports :: [String] 
 defaultImports = [ "Prelude"
+                 , "System.Directory"
                  ]
 
 errorColorPrefix :: Maybe String 

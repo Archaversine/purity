@@ -55,7 +55,6 @@ formatWords (x:xs)
     | '('  == head x && ')' == last x = ret x
     | all isNumber x                  = ret x
     | all haskellSymbolChar x         = ret x
-    | isUpper (head x)                = ret x
     | otherwise                       = ret (show x)
     where next   = formatWords xs
           ret a  = (a:) <$> next

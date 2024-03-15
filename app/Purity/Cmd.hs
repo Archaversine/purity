@@ -11,21 +11,14 @@ import Purity.Types
 import Purity.Directive
 import Purity.Directory
 
-import System.Exit
 import System.FilePath
 import System.Directory hiding (makeAbsolute)
 import System.Process hiding (cwd)
 
-runExternalProcess :: String -> [String] -> Purity (String, ExitCode, String, String)
-runExternalProcess cmd args = do 
+runExternalProcess :: String -> Purity ()
+runExternalProcess cmd = do 
     cwd <- getPurityCWD 
-    liftIO $ withCurrentDirectory cwd $ do 
-        (code, stdin, stderr) <- readProcessWithExitCode cmd args ""
-        return (cmd, code, stdin, stderr)
-
-externalProcess :: String -> Purity (String, ExitCode, String, String)
-externalProcess cmd = runExternalProcess (head ws) (tail ws)
-    where ws = words cmd
+    liftIO $ withCurrentDirectory cwd (callCommand cmd)
 
 haskellSymbolChar :: Char -> Bool 
 haskellSymbolChar = (`elem` "!#$%&*+./<=>?:@\\^|-~")

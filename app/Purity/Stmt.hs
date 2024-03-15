@@ -37,10 +37,10 @@ runLineAsCommand input = do
 
 runLineAsExternal :: String -> Purity () 
 runLineAsExternal cmd = do 
-    (exe, _, out, err) <- externalProcess cmd
+    let exe = head (words cmd)
 
     liftIO (findExecutable exe) >>= \case 
-        Just _  -> liftIO (putStr out) >> prettyPrintErrorStr err
+        Just _  -> runExternalProcess cmd
         Nothing -> throwM $ UnknownError $ "External command not found: " ++ exe
 
 purityStmt :: String -> Purity ()

@@ -35,7 +35,7 @@ directive. You can also use the backslash character to toggle between modes
 
 This is the default mode of the shell. It allows for the execution of commands 
 and Haskell code. It does this by attempting to auto-format the input into an 
-acceptable Haskell expression. For example, `randomCmd input output "my text" MyValue 3` 
+acceptable Haskell expression. For example, `randomCmd input output "my text" 'MyValue 3` 
 would be reformatted as `randomCmd "input" "output" "my text" MyValue 3`. This, however, 
 has its drawbacks as expressions such as `1 + succ 2` are no longer valid since 
 they will be reformatted to `1 + "succ" 2`, which yeilds a type error. To get 

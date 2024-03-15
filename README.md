@@ -4,6 +4,22 @@ A purely functional terminal shell for general purpose usage and scripting.
 
 ![Purity Preview](https://github.com/Archaversine/purity/blob/main/pictures/preview.png)
 
+## Compilation and Installation 
+
+To build this project you will need [Cabal](https://www.haskell.org/cabal/) 
+installed on your system with GHC version 9.4.7.
+
+To compile the project, clone the repo and run the `cabal build` command inside 
+the it.
+
+Create a directory in your home directory called `.purity` and copy the `Config.hs`,
+`User.hs`, and `Builtin.hs` files from the repo to the newly created directory.
+
+After this, you may take the `purity` executable generated from the build command, 
+and place to somewhere in your `PATH` environment variable. The application should 
+now function properly. Note that on Windows systems, you may need to edit the 
+`Config.hs` files to remove any unicode characters that may cause issues.
+
 ## Configuration 
 
 Purity offers two different files for configuration: `Config.hs` and `User.hs`.

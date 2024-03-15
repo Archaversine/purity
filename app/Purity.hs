@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Purity ( module Purity.Types 
@@ -11,6 +10,7 @@ module Purity ( module Purity.Types
               ) where 
 
 import Control.Lens
+import Control.Monad.Catch
 
 import Data.Maybe
 
@@ -42,24 +42,34 @@ loadConfig = do
 
     intSettings .= settings
 
+data ConfigFileNotFound = ConfigFileNotFound FilePath [FilePath]
+
+instance Show ConfigFileNotFound where 
+    show (ConfigFileNotFound path ps) = "Config file " ++ path ++ " not found in any of the following directories:\n" ++ unlines ps
+
+instance Exception ConfigFileNotFound
+
+findPurityConfigFile' :: [FilePath] -> [FilePath] -> FilePath -> Purity FilePath
+findPurityConfigFile' ps [] path = throwM $ ConfigFileNotFound path ps
+findPurityConfigFile' ps (x:xs) path = do 
+    exists <- liftIO $ doesFileExist (x </> path)
+    if exists then return (x </> path) else findPurityConfigFile' ps xs path
+
+findPurityConfigFile :: [FilePath] -> FilePath -> Purity FilePath
+findPurityConfigFile ps = findPurityConfigFile' ps ps
+
 purity :: Purity ()
 purity = do 
-    cwd  <- liftIO getCurrentDirectory
     path <- liftIO getExecutablePath
+    home <- liftIO getHomeDirectory
+    cwd  <- liftIO getCurrentDirectory
 
-    -- Prefer to be in same directory as the executable
-    configFile  <- liftIO $ doesFileExist (path </> "Config.hs") >>= \case 
-        True  -> return (path </> "Config.hs")
-        False -> return (cwd  </> "Config.hs")
+    -- Order to search for config files
+    let dirSearchOrder = [path, home </> ".purity", cwd]
 
-    -- Prefer to be in same directory as the executable
-    userFile    <- liftIO $ doesFileExist (path </> "User.hs") >>= \case 
-        True  -> return (path </> "User.hs")
-        False -> return (cwd  </> "User.hs")
-
-    builtinFile <- liftIO $ doesFileExist (path </> "Builtin.hs") >>= \case 
-        True  -> return (path </> "Builtin.hs")
-        False -> return (cwd  </> "Builtin.hs")
+    configFile  <- findPurityConfigFile dirSearchOrder "Config.hs"
+    userFile    <- findPurityConfigFile dirSearchOrder "User.hs"
+    builtinFile <- findPurityConfigFile dirSearchOrder "Builtin.hs" 
 
     loadModules  [configFile, userFile, builtinFile]
     purityImport [ModuleImport "Config"  (QualifiedAs (Just "Config")) NoImportList]

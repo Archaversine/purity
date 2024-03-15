@@ -56,6 +56,7 @@ formatWords (x:xs)
     | ".." == x                       = ret' (show . takeDirectory <$> getPurityCWD)
     | "./"  `isPrefixOf` x            = ret' (show <$> makeAbsolute x)
     | "../" `isPrefixOf` x            = ret' (show <$> makeAbsolute x)
+    | "/"  == x                       = ret x
     | '"'  == head x && '"' == last x = ret x
     | '\'' == head x                  = ret (tail x)
     | '('  == head x && ')' == last x = ret x

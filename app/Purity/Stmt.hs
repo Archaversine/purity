@@ -17,7 +17,6 @@ import Purity.Directive
 
 import System.Directory
 import System.Exit
-import System.Process
 
 runLine :: String -> Purity () 
 runLine input = gets (view (intSettings.termMode)) >>= \case
@@ -32,7 +31,7 @@ runLineAsCommand input = do
     formatted <- formatInput input
     catch @_ @SomeException (purityStmt formatted) $ \e -> do -- Try to run as command with auto formatting
         catch @_ @SomeException (purityStmt input) $ \_ -> do -- Try to run as command without auto formatting
-            catch @_ @SomeException (runLineAsExternal input) (const $ handleError e) -- Try to run as external command
+            catch @_ @SomeException (runLineAsExternal input) (const $ handleError e) -- Try to run as external command (no formatting)
 
             -- If all fails, throw the original error from running with auto formatting
 
@@ -73,7 +72,7 @@ sourceFileLine :: String -> [String] -> Purity ()
 sourceFileLine _ [] = return ()
 sourceFileLine [] ("```":ys) = sourceFileLine " " ys -- empty string means start of codeblock
 sourceFileLine xs ("```":ys) = runLine xs >> sourceFileLine "" ys
-sourceFileLine [] (y  :  ys) = runLine y >> sourceFileLine "" ys -- empty string means not in codeblock
+sourceFileLine [] (y  :  ys) = runLine y  >> sourceFileLine "" ys -- empty string means not in codeblock
 sourceFileLine xs (y  :  ys) = sourceFileLine (xs <> "\n" <> y) ys -- not empty string means in codeblock
 
 codeBlock :: String -> Purity () 

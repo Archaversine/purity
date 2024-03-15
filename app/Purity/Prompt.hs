@@ -8,7 +8,6 @@ import Purity.Types
 import Purity.Directory
 
 import System.Console.Haskeline
-import System.Directory
 
 getPrompt :: Purity (FilePath -> String)
 getPrompt = do 

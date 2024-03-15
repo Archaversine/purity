@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Purity ( module Purity.Types 
               , module Purity.Imports 
@@ -17,6 +18,7 @@ import Purity.Types
 import Purity.Imports 
 import Purity.Prompt
 import Purity.Stmt
+import Purity.Directory
 
 import System.Console.Haskeline
 import System.Environment
@@ -70,4 +72,10 @@ purity = do
     interpret "Config.defaultImports" (as :: [String]    ) >>= purityImportStr >> purityLoop
 
 runPurity :: MonadIO m => Purity a -> m (Either InterpreterError a) 
-runPurity p = liftIO $ runInterpreter $ runInputT defaultSettings (evalStateT p defaultState)
+runPurity p = liftIO $ runInterpreter $ runInputT inputSettings (evalStateT p defaultState)
+    where inputSettings = (defaultSettings @Purity) { complete = autoCompleteFileName }
+
+autoCompleteFileName :: CompletionFunc (InterpreterT IO)
+autoCompleteFileName input = do 
+    cwd <- getPurityCWDInterpreter
+    liftIO $ withCurrentDirectory cwd (completeFilename input)

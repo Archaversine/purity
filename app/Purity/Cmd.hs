@@ -11,11 +11,24 @@ import Purity.Types
 import Purity.Directive
 import Purity.Directory
 
+import System.Exit
 import System.FilePath
-import System.Directory
+import System.Directory hiding (makeAbsolute)
+import System.Process hiding (cwd)
+
+runExternalProcess :: String -> [String] -> Purity (String, ExitCode, String, String)
+runExternalProcess cmd args = do 
+    cwd <- getPurityCWD 
+    liftIO $ withCurrentDirectory cwd $ do 
+        (code, stdin, stderr) <- readProcessWithExitCode cmd args ""
+        return (cmd, code, stdin, stderr)
+
+externalProcess :: String -> Purity (String, ExitCode, String, String)
+externalProcess cmd = runExternalProcess (head ws) (tail ws)
+    where ws = words cmd
 
 haskellSymbolChar :: Char -> Bool 
-haskellSymbolChar = (`elem` "!#$%&*+./<=>?@\\^|-~")
+haskellSymbolChar = (`elem` "!#$%&*+./<=>?:@\\^|-~")
 
 -- Same as `words` but anything inside quotes is treated as a single word
 wordsAndStrings :: String -> [String] 
@@ -41,8 +54,8 @@ formatWords ([]:xs) = formatWords xs
 formatWords (x:xs) 
     | "."  == x                       = ret' (show <$> getPurityCWD)
     | ".." == x                       = ret' (show . takeDirectory <$> getPurityCWD)
-    | "./"  `isPrefixOf` x            = ret' (show <$> liftIO (makeAbsolute x))
-    | "../" `isPrefixOf` x            = ret' (show <$> liftIO (makeAbsolute x))
+    | "./"  `isPrefixOf` x            = ret' (show <$> makeAbsolute x)
+    | "../" `isPrefixOf` x            = ret' (show <$> makeAbsolute x)
     | '"'  == head x && '"' == last x = ret x
     | '\'' == head x                  = ret (tail x)
     | '('  == head x && ')' == last x = ret x
